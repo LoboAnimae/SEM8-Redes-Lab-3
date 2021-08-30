@@ -8,8 +8,17 @@ import java.util.Scanner;
 
 public class Topologia {
 
+    private static Topologia single_instance = null;
     private ArrayList<Nodo> nodos;
     private Grafo red;
+    private Nodo actualN;
+
+    public static Topologia getInstance() {
+        if (single_instance == null)
+            single_instance = new Topologia();
+
+        return single_instance;
+    }
 
     public Topologia(){
         this.nodos = new ArrayList<>();
@@ -96,7 +105,7 @@ public class Topologia {
 
         this.red = uti.dijkstra(red, actualN);
 
-/*        for (Nodo n: this.red.getNodos()){
+        /*for (Nodo n: this.red.getNodos()){
             this.buscarNodo(n.getNombre()).printCaminoCorto();
         }*/
     }
@@ -108,11 +117,28 @@ public class Topologia {
         }
         return null;
     }
+
     public Nodo buscarNodoJID(String JID){
         for (Nodo n: this.nodos){
-            if (n.getNombre().equals(JID))
+            if (n.getJID().equals(JID))
                 return n;
         }
         return null;
+    }
+
+    public Nodo getActualN() {
+        return actualN;
+    }
+
+    public void setActualN(Nodo actualN) {
+        this.actualN = actualN;
+    }
+
+    public String listaNodos(){
+        String lista ="";
+
+        for (Nodo n: this.nodos)
+            lista = lista + n.getNombre() + ",";
+        return lista;
     }
 }

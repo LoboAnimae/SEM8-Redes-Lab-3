@@ -2,7 +2,7 @@
 public class Main {
     public static void main(String[] args){
 
-        ClienteXMPP cli = new ClienteXMPP();
+
         Utilidades uti = new Utilidades();
 
         //cli.mensaje(cli.conectar());
@@ -11,7 +11,9 @@ public class Main {
 
 
         Menu m = new Menu();
-        m.configuararTopo();
+        m.menuIniciar();
+        m.mandarMSN();
+
     }
 
 }

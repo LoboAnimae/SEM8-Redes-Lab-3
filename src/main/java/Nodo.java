@@ -64,6 +64,14 @@ public class Nodo {
         this.nodosAdyacentes = nodosAdyacentes;
     }
 
+    public String getJID() {
+        return JID;
+    }
+
+    public void setJID(String JID) {
+        this.JID = JID;
+    }
+
     public void printCaminoCorto(){
         System.out.print( this.nombre+" -> ");
         for (Nodo n: this.caminoCorto){
@@ -71,4 +79,22 @@ public class Nodo {
         }
         System.out.println("");
     }
+
+    public String caminoCorto(){
+        String camino = "";
+        for (Nodo n: this.caminoCorto){
+            camino = camino + n.getNombre()+",";
+        }
+        System.out.println("");
+        return camino;
+    }
+    public int distCaminoCorto(){
+        int camino = 0;
+        for (Nodo n: this.caminoCorto){
+            camino = camino + n.getDist();
+        }
+        System.out.println("");
+        return camino;
+    }
+
 }

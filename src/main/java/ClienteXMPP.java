@@ -93,4 +93,25 @@ public class ClienteXMPP {
         }
     }
 
+    public void mandarMensaje(Nodo dest, String msn){
+        String pakage = "";
+
+        pakage = pakage + Topologia.getInstance().getActualN().getNombre() +" ø ";
+
+        pakage = pakage + dest.getNombre() + " ø ";
+
+        pakage = pakage + dest.caminoCorto()+" ø ";
+
+        pakage = pakage + dest.distCaminoCorto()+" ø ";
+
+        pakage = pakage + Topologia.getInstance().listaNodos() + " ø ";
+
+        pakage = pakage + msn;
+
+        System.out.println("_____________________________");
+        System.out.println(pakage);
+        System.out.println("_____________________________");
+
+    }
+
 }
