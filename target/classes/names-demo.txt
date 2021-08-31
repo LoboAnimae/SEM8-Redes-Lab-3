@@ -1,8 +1,3 @@
 {"type":"names",
- "config":{'A': 'foo@alumchat.xyz',
-  'B': 'bar@alumchat.xyz',
-   'C': 'swag@alumchat.xyz',
-    'D': 'lol@alumchat.xyz',
-     'E': 'yeet@alumchat.xyz',
-      'F': 'woot@alumchat.xyz',
-       'G': 'omg@alumchat.xyz'} }
+ "config":{'A': 'davisgt@jabber.hot-chilli.net',
+  'B': 'davisgt2@jabb3r.org'} }
