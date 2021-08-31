@@ -73,10 +73,10 @@ public class Nodo {
     }
 
     public void printCaminoCorto(){
-        System.out.print( this.nombre+" -> ");
         for (Nodo n: this.caminoCorto){
             System.out.print(n.getNombre()+" - ");
         }
+        //System.out.print( "'"+this.nombre+"'");
         System.out.println("");
     }
 
@@ -85,7 +85,6 @@ public class Nodo {
         for (Nodo n: this.caminoCorto){
             camino = camino + n.getNombre()+",";
         }
-        System.out.println("");
         return camino;
     }
     public int distCaminoCorto(){
@@ -95,6 +94,10 @@ public class Nodo {
         }
         System.out.println("");
         return camino;
+    }
+
+    public void arreglarCamino(){
+        this.caminoCorto.add(this);
     }
 
 }

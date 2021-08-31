@@ -1,3 +1,4 @@
+// Implementación basada de Dijkstra en https://www.baeldung.com/java-dijkstra
 import java.util.*;
 
 import static org.junit.Assert.assertTrue;

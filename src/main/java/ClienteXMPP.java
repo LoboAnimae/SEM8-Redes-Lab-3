@@ -14,24 +14,36 @@ import org.jxmpp.jid.parts.Localpart;
 import org.jxmpp.stringprep.XmppStringprepException;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 public class ClienteXMPP {
 
+    private static ClienteXMPP single_instance = null;
+    private AbstractXMPPConnection cnn;
+    private ArrayList<ChatRoom> chats;
 
-    AbstractXMPPConnection cnn;
+    public static ClienteXMPP getInstance() {
+        if (single_instance == null)
+            single_instance = new ClienteXMPP();
+        return single_instance;
+    }
 
-    public AbstractXMPPConnection iniciarSesion(){
+    public ClienteXMPP(){
+        this.chats = new ArrayList<>();
+    }
+
+    public void iniciarSesion(String usr, String pass, String xmpp){
         // Create a connection and login to the example.org XMPP service.
         try {
-            AbstractXMPPConnection cnn = new XMPPTCPConnection("davisgt", "bananasenpijama", "alumchat.xyz");
+            AbstractXMPPConnection cnn = new XMPPTCPConnection(usr, pass, xmpp);
             cnn.connect().login();
-            return cnn;
+            this.cnn = cnn;
 
         } catch (SmackException | IOException | XMPPException | InterruptedException e) {
         }
-        return null;
     }
 
     public AbstractXMPPConnection conectar(){
@@ -46,28 +58,6 @@ public class ClienteXMPP {
         return null;
     }
 
-    public void CrearUsuario(AbstractXMPPConnection connection){
-
-        try {
-
-            Jid id = JidCreate.from("davisgt@alumchat.xyz");
-
-            AccountManager accountManager = AccountManager.getInstance(connection);
-            accountManager.createAccount(id.getLocalpartOrNull(), "bananasenpijamas");
-        }catch (XmppStringprepException | SmackException.NoResponseException | XMPPException.XMPPErrorException | SmackException.NotConnectedException | InterruptedException e){
-
-        }
-    }
-/*
-        public void createAccount(String username, String password) throws XMPPException {
-            // Create a map for all the required attributes, but give them blank values.
-            Map<String, String> attributes = new HashMap<String, String>();
-            for (String attributeName : getAccountAttributes()) {
-                attributes.put(attributeName, "");
-            }
-            createAccount(username, password, attributes);
-        }
-    */
     public void mensaje(AbstractXMPPConnection connection){
         try{
             ChatManager chatManager = ChatManager.getInstanceFor(connection);
@@ -93,7 +83,32 @@ public class ClienteXMPP {
         }
     }
 
-    public void mandarMensaje(Nodo dest, String msn){
+    public void enrutar(String receptor, String msn){
+        try{
+            ChatManager chatManager = ChatManager.getInstanceFor(this.cnn);
+            EntityBareJid jid = JidCreate.entityBareFrom(receptor);
+            Chat chat = chatManager.chatWith(jid);
+
+            chat.send(msn);
+
+            chatManager.addIncomingListener(new IncomingChatMessageListener() {
+                @Override
+                public void newIncomingMessage(EntityBareJid from, Message message, Chat chat) {
+                    System.out.println("New message from " + from + ": " + message.getBody());
+                }
+            });
+            while (true){}
+
+        }catch (XmppStringprepException e){
+
+        } catch (SmackException.NotConnectedException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public String armarMensaje(Nodo dest, String msn){
         String pakage = "";
 
         pakage = pakage + Topologia.getInstance().getActualN().getNombre() +" ø ";
@@ -108,10 +123,95 @@ public class ClienteXMPP {
 
         pakage = pakage + msn;
 
-        System.out.println("_____________________________");
+/*        System.out.println("_____________________________");
         System.out.println(pakage);
-        System.out.println("_____________________________");
+        System.out.println("_____________________________");*/
+
+        return pakage;
+    }
+
+    public void enrutarMSN(String msn){
+        String[] pakage = msn.split("ø");
+
+        Nodo camino = Topologia.getInstance().buscarNodo(pakage[1].trim());
+
+/*        if (camino.getNombre().equals(Topologia.getInstance().getActualN().getNombre())){
+            //Mostar Mensaje
+            System.out.println("llego mensaje1");
+        }*/
+
+        if (camino.getCaminoCorto().size()==1){
+            System.out.println("____________NUEVO_MENSAJE_________________");
+            Nodo emisario = Topologia.getInstance().buscarNodo(pakage[0].trim());
+            System.out.println("De: " +emisario.getJID());
+            System.out.println("Mensaje:");
+            System.out.println(pakage[5]);
+            System.out.println("________________FIN_XD____________________");
+        }else if (camino.getCaminoCorto().size()>=2){
+            Nodo destino = camino.getCaminoCorto().get(1);
+            this.enviarMensaje(msn, destino.getJID());
+            camino.printCaminoCorto();
+            System.out.println("Mensaje enrutado "+Topologia.getInstance().getActualN().getNombre() + " ->  "+pakage[1].trim()+" exitosamente!");
+        }
+
+        //this.mensaje(this.cnn);
 
     }
 
+    public void agregarChat(Nodo cnn){
+
+        ChatRoom amigo = new ChatRoom();
+        amigo.setNombre(cnn.getNombre());
+        amigo.setJID(cnn.getJID());
+        amigo.setChat(this.crearChat(cnn.getJID()));
+        this.chats.add(amigo);
+    }
+
+    public Chat crearChat(String receptor){
+        System.out.println("ChatRoom lista! '"+receptor+"'");
+        try{
+            ChatManager chatManager = ChatManager.getInstanceFor(this.cnn);
+            EntityBareJid jid = JidCreate.entityBareFrom(receptor);
+            Chat chat = chatManager.chatWith(jid);
+
+            chatManager.addIncomingListener(new IncomingChatMessageListener() {
+                @Override
+                public void newIncomingMessage(EntityBareJid from, Message message, Chat chat) {
+                    //System.out.println("New message from " + from + ": " + message.getBody());
+                    String mensaje = message.getBody();
+                    String[] pakage = mensaje.split("ø");
+
+                    System.out.println("Paquete interceptado: "+pakage[0].trim()+" -> "+pakage[1].trim()+"...");
+                    ClienteXMPP.getInstance().enrutarMSN(mensaje);
+                }
+            });
+
+            return chat;
+
+        }catch (XmppStringprepException e){
+
+        }
+        return null;
+    }
+
+    public void enviarMensaje(String mensaje, String destino){
+        Chat wasap=null;
+        for (ChatRoom c: this.chats){
+            if (c.getJID().equals(destino)){
+                wasap = c.getChat();
+            }
+        }
+        if (wasap != null){
+            try{
+                wasap.send(mensaje);
+            } catch (SmackException.NotConnectedException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }else {
+            System.out.println("Error al enviar el mensaje");
+        }
+
+    }
 }

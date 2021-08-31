@@ -90,9 +90,11 @@ public class Topologia {
                 //Acá estan las conexiones de cada nodo
 
                 Nodo cnn = this.buscarNodo(name);
-                if (cnn !=null)
+                if (cnn !=null) {
                     prin.addDest(cnn, 1);
-                else
+                    if (prin.getNombre().equals(Topologia.getInstance().getActualN().getNombre()))
+                        ClienteXMPP.getInstance().agregarChat(cnn);
+                }else
                     System.out.println("no se encontro el nodo");
             }
             //System.out.println("");
@@ -140,5 +142,13 @@ public class Topologia {
         for (Nodo n: this.nodos)
             lista = lista + n.getNombre() + ",";
         return lista;
+    }
+
+    public ArrayList<Nodo> getNodos() {
+        return nodos;
+    }
+
+    public void setNodos(ArrayList<Nodo> nodos) {
+        this.nodos = nodos;
     }
 }
