@@ -1,102 +1,83 @@
-// import * as XMPP from 'stanza';
-const XMPP = require( 'stanza' );
-// **************** CONFIGURE THIS TO CHANGE THE NODES ************************ //
-// Client
-const cltaddress = 'alumchat.xyz';
-// Neighbors and distances (connections)
-const neighbors = {
-  A: {B: 7},
-  B: {A: 7, C: 1, D: 2},
-  C: {B: 1},
-  D: {B: 2},
-};
-// Neighbors
-const neighborNames = {
-  A: ['B'],
-  B: ['A', 'B', 'C'],
-  C: ['B'],
-  D: ['B'],
-};
+require('dotenv').config();
+const xmpp = require('simple-xmpp');
+const id = process.argv[2]?.toUpperCase() || 'A';
+let acceptingNewMessagesYet = false;
+let matrix = JSON.parse(process.env[id]);
+const directNeighbors = Object.keys(matrix);
+const possiblePaths = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
 
-// Create the client
-const client = XMPP.createClient(
-    {
-      jid: 'echobot@DESKTOP-C8E0Q7A',
-      password: 'hunter2',
-    },
-);
-
-// Send the roster
-client.on( 'session:started', () => {
-  client.getRoster().then( _ => console.log( 'Got roster' ) );
-  client.sendPresence();
-} );
-
-// Get info from arguments
-const [, , clientLetter] = process.argv;
-
-// Get all paths
-let paths = neighbors[ clientLetter ];
-
-// If no paths, client is using the wrong letter
-if ( !paths ) throw new Error( 'Client path can only be A, B, C, or D' );
-
-/**
- * Chooses the minimum from two numbers
- * @param one
- * @param two
- * @returns {number}
- */
-function min( one, two ) {
-  if ( one < two ) return one;
-  return two;
+function findShortestPath(
+    currentPathDestination,
+    pathToNeighbor,
+    neighborPathToDestination,
+) {
+    const possibleNewPath = pathToNeighbor + neighborPathToDestination;
+    if (currentPathDestination < possibleNewPath) return currentPathDestination;
+    if (currentPathDestination !== possibleNewPath)
+        console.log(
+            `Found a shorter path (${possibleNewPath} <= ${currentPathDestination})`,
+        );
+    return possibleNewPath;
 }
 
-// Get the initial shortest paths
-const shortest_paths = neighbors[ clientLetter ];
-
-// Set the shortest path of a key
-function setPath( key, path1, path2 ) {
-  shortest_paths[ key ] = min( path1, path2 );
+function generateMatrix(foreignMatrixPath, matrixIdentifier) {
+    const tempMatrix = { ...matrix };
+    return new Promise((resolve, reject) => {
+        if (!directNeighbors.includes(matrixIdentifier)) resolve(matrix);
+        for (const path of possiblePaths) {
+            if (path === id) continue;
+            if (!(tempMatrix[path] && foreignMatrixPath[path])) {
+                if (!foreignMatrixPath[path]) continue;
+                tempMatrix[path] =
+                    foreignMatrixPath[path] + tempMatrix[matrixIdentifier];
+                continue;
+            }
+            tempMatrix[path] = findShortestPath(
+                tempMatrix[path],
+                tempMatrix[matrixIdentifier],
+                foreignMatrixPath[path],
+            );
+        }
+        resolve(tempMatrix);
+    });
 }
 
-// Convert to an array to make it possible to use Object Keys inside
-function toArray( toBeArray ) {
-  const propertyNames = Object.keys( toBeArray );
-  let arr = [];
-  for ( const name of propertyNames ) {
-    arr.push( {name, value: toBeArray[ name ]} );
-  }
-  return arr;
-}
-
-// On chat, enter an immediate loop after setting the default values
-client.on( 'chat', ( msg ) => {
-  const received_shortest_paths = JSON.parse( msg.body );
-  const shortest_path_array = toArray( received_shortest_paths );
-  for ( const node of shortest_path_array ) {
-    if ( !shortest_paths[ node.name ] ) {
-      setPath( node.name, node.value, node.value );
-      continue;
+function send() {
+    setTimeout(send, 5000);
+    for (const directNeighbor of directNeighbors) {
+        xmpp.send(
+            `${directNeighbor.toLowerCase()}@localhost`,
+            JSON.stringify({
+                id,
+                dv: JSON.stringify(matrix),
+            }),
+        );
     }
-    setPath( node.name, shortest_paths[ node.name ], node.value );
-  }
-  // The way this works is that it sends a JSON with the different values and always
-  // Chooses the minimum between two nodes such as to find the shortest path  when a path
-  // already exists
-  client.sendMessage(
-      {
-        to: msg.from,
-        body: JSON.stringify( shortest_paths ),
-      } );
-} );
-
-// Send a message to all possible neighbors
-for ( const neighbor of neighborNames[ clientLetter ] ) {
-  client.sendMessage(
-      {
-        to: `${ neighbor }@${ cltaddress }`,
-        body: JSON.stringify( shortest_paths ),
-      } );
 }
-client.connect();
+
+xmpp.on('online', _data => {
+    console.log(
+        `You are now online. You are now broadcasting to your neighbors, which are: ${directNeighbors}.`,
+    );
+});
+
+xmpp.on('error', console.log);
+
+xmpp.on('chat', async (from, message) => {
+    if (!acceptingNewMessagesYet) return;
+    let { id: foreignID, dv } = JSON.parse(message);
+    dv = JSON.parse(dv);
+    generateMatrix(dv, foreignID).then(newMatrix => {
+        matrix = newMatrix;
+        console.log(matrix);
+    });
+});
+send();
+setTimeout(() => (acceptingNewMessagesYet = true), 5000);
+
+xmpp.connect({
+    jid: `${id.toLowerCase()}@localhost`,
+    password: 'password',
+    host: 'localhost',
+    port: 5222,
+});
